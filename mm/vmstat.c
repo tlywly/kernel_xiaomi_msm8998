@@ -861,10 +861,8 @@ const char * const vmstat_text[] = {
 #endif
 #endif /* CONFIG_MEMORY_BALLOON */
 #ifdef CONFIG_DEBUG_TLBFLUSH
-#ifdef CONFIG_SMP
 	"nr_tlb_remote_flush",
 	"nr_tlb_remote_flush_received",
-#endif /* CONFIG_SMP */
 	"nr_tlb_local_flush_all",
 	"nr_tlb_local_flush_one",
 #endif /* CONFIG_DEBUG_TLBFLUSH */
@@ -1390,7 +1388,11 @@ static cpumask_var_t cpu_stat_off;
 
 static void vmstat_update(struct work_struct *w)
 {
+<<<<<<< HEAD
 	if (refresh_cpu_vm_stats(true) && !cpu_isolated(smp_processor_id())) {
+=======
+	if (refresh_cpu_vm_stats(true)) {
+>>>>>>> v4.4.180
 		/*
 		 * Counters were updated so we expect more updates
 		 * to occur in the future. Keep on running the

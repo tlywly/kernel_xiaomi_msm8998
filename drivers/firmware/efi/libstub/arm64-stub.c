@@ -20,8 +20,11 @@
 
 #include <linux/efi.h>
 #include <asm/efi.h>
+<<<<<<< HEAD
 
 #include "efistub.h"
+=======
+>>>>>>> v4.4.180
 
 efi_status_t __init handle_kernel_image(efi_system_table_t *sys_table_arg,
 					unsigned long *image_addr,

@@ -68,6 +68,7 @@ static struct fsync_inode_entry *get_fsync_inode(struct list_head *head,
 	return NULL;
 }
 
+<<<<<<< HEAD
 static struct fsync_inode_entry *add_fsync_inode(struct f2fs_sb_info *sbi,
 			struct list_head *head, nid_t ino, bool quota_inode)
 {
@@ -90,13 +91,27 @@ static struct fsync_inode_entry *add_fsync_inode(struct f2fs_sb_info *sbi,
 	}
 
 	entry = f2fs_kmem_cache_alloc(fsync_entry_slab, GFP_F2FS_ZERO);
+=======
+static struct fsync_inode_entry *add_fsync_inode(struct list_head *head,
+							struct inode *inode)
+{
+	struct fsync_inode_entry *entry;
+
+	entry = kmem_cache_alloc(fsync_entry_slab, GFP_F2FS_ZERO);
+	if (!entry)
+		return NULL;
+
+>>>>>>> v4.4.180
 	entry->inode = inode;
 	list_add_tail(&entry->list, head);
 
 	return entry;
+<<<<<<< HEAD
 err_out:
 	iput(inode);
 	return ERR_PTR(err);
+=======
+>>>>>>> v4.4.180
 }
 
 static void del_fsync_inode(struct fsync_inode_entry *entry)
@@ -121,16 +136,35 @@ static int recover_dentry(struct inode *inode, struct page *ipage,
 
 	entry = get_fsync_inode(dir_list, pino);
 	if (!entry) {
+<<<<<<< HEAD
 		entry = add_fsync_inode(F2FS_I_SB(inode), dir_list,
 							pino, false);
 		if (IS_ERR(entry)) {
 			dir = ERR_CAST(entry);
 			err = PTR_ERR(entry);
+=======
+		dir = f2fs_iget(inode->i_sb, pino);
+		if (IS_ERR(dir)) {
+			err = PTR_ERR(dir);
+			goto out;
+		}
+
+		entry = add_fsync_inode(dir_list, dir);
+		if (!entry) {
+			err = -ENOMEM;
+			iput(dir);
+>>>>>>> v4.4.180
 			goto out;
 		}
 	}
 
 	dir = entry->inode;
+<<<<<<< HEAD
+=======
+
+	if (file_enc_name(inode))
+		return 0;
+>>>>>>> v4.4.180
 
 	memset(&fname, 0, sizeof(struct fscrypt_name));
 	fname.disk_name.len = le32_to_cpu(raw_inode->i_namelen);
@@ -170,6 +204,7 @@ retry:
 		f2fs_delete_entry(de, page, dir, einode);
 		iput(einode);
 		goto retry;
+<<<<<<< HEAD
 	} else if (IS_ERR(page)) {
 		err = PTR_ERR(page);
 	} else {
@@ -178,6 +213,11 @@ retry:
 	}
 	if (err == -ENOMEM)
 		goto retry;
+=======
+	}
+	err = __f2fs_add_link(dir, &name, inode, inode->i_ino, inode->i_mode);
+
+>>>>>>> v4.4.180
 	goto out;
 
 out_put:
@@ -238,6 +278,7 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 				bool check_only)
 {
 	struct curseg_info *curseg;
+	struct inode *inode;
 	struct page *page = NULL;
 	block_t blkaddr;
 	unsigned int loop_cnt = 0;
@@ -252,7 +293,11 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 	while (1) {
 		struct fsync_inode_entry *entry;
 
+<<<<<<< HEAD
 		if (!f2fs_is_valid_meta_blkaddr(sbi, blkaddr, META_POR))
+=======
+		if (!f2fs_is_valid_blkaddr(sbi, blkaddr, META_POR))
+>>>>>>> v4.4.180
 			return 0;
 
 		page = f2fs_get_tmp_page(sbi, blkaddr);
@@ -279,16 +324,33 @@ static int find_fsync_dnodes(struct f2fs_sb_info *sbi, struct list_head *head,
 			 * CP | dnode(F) | inode(DF)
 			 * For this case, we should not give up now.
 			 */
+<<<<<<< HEAD
 			entry = add_fsync_inode(sbi, head, ino_of_node(page),
 								quota_inode);
 			if (IS_ERR(entry)) {
 				err = PTR_ERR(entry);
+=======
+			inode = f2fs_iget(sbi->sb, ino_of_node(page));
+			if (IS_ERR(inode)) {
+				err = PTR_ERR(inode);
+>>>>>>> v4.4.180
 				if (err == -ENOENT) {
 					err = 0;
 					goto next;
 				}
 				break;
 			}
+<<<<<<< HEAD
+=======
+
+			/* add this fsync inode to the list */
+			entry = add_fsync_inode(head, inode);
+			if (!entry) {
+				err = -ENOMEM;
+				iput(inode);
+				break;
+			}
+>>>>>>> v4.4.180
 		}
 		entry->blkaddr = blkaddr;
 
@@ -507,7 +569,11 @@ retry_dn:
 		}
 
 		/* dest is valid block, try to recover from src to dest */
+<<<<<<< HEAD
 		if (f2fs_is_valid_meta_blkaddr(sbi, dest, META_POR)) {
+=======
+		if (f2fs_is_valid_blkaddr(sbi, dest, META_POR)) {
+>>>>>>> v4.4.180
 
 			if (src == NULL_ADDR) {
 				err = f2fs_reserve_new_block(&dn);
@@ -568,7 +634,11 @@ static int recover_data(struct f2fs_sb_info *sbi, struct list_head *inode_list,
 	while (1) {
 		struct fsync_inode_entry *entry;
 
+<<<<<<< HEAD
 		if (!f2fs_is_valid_meta_blkaddr(sbi, blkaddr, META_POR))
+=======
+		if (!f2fs_is_valid_blkaddr(sbi, blkaddr, META_POR))
+>>>>>>> v4.4.180
 			break;
 
 		f2fs_ra_meta_pages_cond(sbi, blkaddr);
@@ -615,13 +685,23 @@ next:
 	return err;
 }
 
+<<<<<<< HEAD
 int f2fs_recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
+=======
+int recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
+>>>>>>> v4.4.180
 {
 	struct list_head inode_list;
 	struct list_head dir_list;
+<<<<<<< HEAD
 	int err;
 	int ret = 0;
 	unsigned long s_flags = sbi->sb->s_flags;
+=======
+	block_t blkaddr;
+	int err;
+	int ret = 0;
+>>>>>>> v4.4.180
 	bool need_writecp = false;
 #ifdef CONFIG_QUOTA
 	int quota_enabled;
@@ -653,6 +733,7 @@ int f2fs_recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 	mutex_lock(&sbi->cp_mutex);
 
 	/* step #1: find fsynced inode numbers */
+<<<<<<< HEAD
 	err = find_fsync_dnodes(sbi, &inode_list, check_only);
 	if (err || list_empty(&inode_list))
 		goto skip;
@@ -660,6 +741,15 @@ int f2fs_recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only)
 	if (check_only) {
 		ret = 1;
 		goto skip;
+=======
+	err = find_fsync_dnodes(sbi, &inode_list);
+	if (err || list_empty(&inode_list))
+		goto out;
+
+	if (check_only) {
+		ret = 1;
+		goto out;
+>>>>>>> v4.4.180
 	}
 
 	need_writecp = true;
@@ -681,15 +771,26 @@ skip:
 	}
 
 	clear_sbi_flag(sbi, SBI_POR_DOING);
+<<<<<<< HEAD
 	mutex_unlock(&sbi->cp_mutex);
 
 	/* let's drop all the directory inodes for clean checkpoint */
 	destroy_fsync_dnodes(&dir_list);
 
+=======
+	if (err)
+		set_ckpt_flags(sbi->ckpt, CP_ERROR_FLAG);
+	mutex_unlock(&sbi->cp_mutex);
+
+	/* let's drop all the directory inodes for clean checkpoint */
+	destroy_fsync_dnodes(&dir_list);
+
+>>>>>>> v4.4.180
 	if (!err && need_writecp) {
 		struct cp_control cpc = {
 			.reason = CP_RECOVERY,
 		};
+<<<<<<< HEAD
 		err = f2fs_write_checkpoint(sbi, &cpc);
 	}
 
@@ -702,5 +803,11 @@ out:
 #endif
 	sbi->sb->s_flags = s_flags; /* Restore MS_RDONLY status */
 
+=======
+		write_checkpoint(sbi, &cpc);
+	}
+
+	kmem_cache_destroy(fsync_entry_slab);
+>>>>>>> v4.4.180
 	return ret ? ret: err;
 }

@@ -28,6 +28,7 @@ config STM_SOURCE_CONSOLE
 	  If you want to send kernel console messages over STM devices,
 	  say Y.
 
+<<<<<<< HEAD
 config STM_SOURCE_HEARTBEAT
 	tristate "Heartbeat over STM devices"
 	help
@@ -39,4 +40,6 @@ config STM_SOURCE_HEARTBEAT
 	  If you want to send heartbeat messages over STM devices,
 	  say Y.
 
+=======
+>>>>>>> v4.4.180
 endif

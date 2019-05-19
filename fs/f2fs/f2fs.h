@@ -257,7 +257,7 @@ struct cp_control {
 };
 
 /*
- * For CP/NAT/SIT/SSA readahead
+ * indicate meta/data type
  */
 enum {
 	META_CP,
@@ -265,6 +265,8 @@ enum {
 	META_SIT,
 	META_SSA,
 	META_POR,
+	DATA_GENERIC,
+	META_GENERIC,
 };
 
 /* for the list of ino */
@@ -1067,6 +1069,7 @@ struct f2fs_io_info {
 	block_t old_blkaddr;	/* old block address before Cow */
 	struct page *page;	/* page to be written */
 	struct page *encrypted_page;	/* encrypted page */
+<<<<<<< HEAD
 	struct list_head list;		/* serialize IOs */
 	bool submitted;		/* indicate IO submission */
 	int need_lock;		/* indicate we need to lock cp_rwsem */
@@ -1075,6 +1078,9 @@ struct f2fs_io_info {
 	bool retry;		/* need to reallocate block address */
 	enum iostat_type io_type;	/* io type */
 	struct writeback_control *io_wbc; /* writeback control */
+=======
+	bool is_meta;		/* indicate borrow meta inode mapping or not */
+>>>>>>> v4.4.180
 };
 
 #define is_read_io(rw) ((rw) == READ)
@@ -1196,7 +1202,10 @@ struct f2fs_sb_info {
 	/* for checkpoint */
 	struct f2fs_checkpoint *ckpt;		/* raw checkpoint pointer */
 	int cur_cp_pack;			/* remain current cp pack */
+<<<<<<< HEAD
 	spinlock_t cp_lock;			/* for flag in ckpt */
+=======
+>>>>>>> v4.4.180
 	struct inode *meta_inode;		/* cache meta blocks */
 	struct mutex cp_mutex;			/* checkpoint procedure lock */
 	struct rw_semaphore cp_rwsem;		/* blocking FS operations */
@@ -2297,6 +2306,10 @@ enum {
 	FI_ACL_MODE,		/* indicate acl mode */
 	FI_NO_ALLOC,		/* should not allocate any blocks */
 	FI_FREE_NID,		/* free allocated nide */
+<<<<<<< HEAD
+=======
+	FI_UPDATE_DIR,		/* should update inode block for consistency */
+>>>>>>> v4.4.180
 	FI_NO_EXTENT,		/* not to use the extent cache */
 	FI_INLINE_XATTR,	/* used for inline xattr */
 	FI_INLINE_DATA,		/* used for inline data*/
@@ -2752,6 +2765,39 @@ static inline bool is_valid_blkaddr(block_t blkaddr)
 	return true;
 }
 
+#define __is_meta_io(fio) (PAGE_TYPE_OF_BIO(fio->type) == META &&	\
+				(!is_read_io(fio->rw) || fio->is_meta))
+
+bool f2fs_is_valid_blkaddr(struct f2fs_sb_info *sbi,
+					block_t blkaddr, int type);
+void f2fs_msg(struct super_block *sb, const char *level, const char *fmt, ...);
+static inline void verify_blkaddr(struct f2fs_sb_info *sbi,
+					block_t blkaddr, int type)
+{
+	if (!f2fs_is_valid_blkaddr(sbi, blkaddr, type)) {
+		f2fs_msg(sbi->sb, KERN_ERR,
+			"invalid blkaddr: %u, type: %d, run fsck to fix.",
+			blkaddr, type);
+		f2fs_bug_on(sbi, 1);
+	}
+}
+
+static inline bool __is_valid_data_blkaddr(block_t blkaddr)
+{
+	if (blkaddr == NEW_ADDR || blkaddr == NULL_ADDR)
+		return false;
+	return true;
+}
+
+static inline bool is_valid_data_blkaddr(struct f2fs_sb_info *sbi,
+						block_t blkaddr)
+{
+	if (!__is_valid_data_blkaddr(blkaddr))
+		return false;
+	verify_blkaddr(sbi, blkaddr, DATA_GENERIC);
+	return true;
+}
+
 /*
  * file.c
  */
@@ -2794,6 +2840,7 @@ struct dentry *f2fs_get_parent(struct dentry *child);
 /*
  * dir.c
  */
+<<<<<<< HEAD
 unsigned char f2fs_get_de_type(struct f2fs_dir_entry *de);
 struct f2fs_dir_entry *f2fs_find_target_dentry(struct fscrypt_name *fname,
 			f2fs_hash_t namehash, int *max_slots,
@@ -2832,6 +2879,39 @@ void f2fs_delete_entry(struct f2fs_dir_entry *dentry, struct page *page,
 			struct inode *dir, struct inode *inode);
 int f2fs_do_tmpfile(struct inode *inode, struct inode *dir);
 bool f2fs_empty_dir(struct inode *dir);
+=======
+extern unsigned char f2fs_filetype_table[F2FS_FT_MAX];
+void set_de_type(struct f2fs_dir_entry *, umode_t);
+unsigned char get_de_type(struct f2fs_dir_entry *);
+struct f2fs_dir_entry *find_target_dentry(struct f2fs_filename *,
+			f2fs_hash_t, int *, struct f2fs_dentry_ptr *);
+bool f2fs_fill_dentries(struct dir_context *, struct f2fs_dentry_ptr *,
+			unsigned int, struct f2fs_str *);
+void do_make_empty_dir(struct inode *, struct inode *,
+			struct f2fs_dentry_ptr *);
+struct page *init_inode_metadata(struct inode *, struct inode *,
+			const struct qstr *, struct page *);
+void update_parent_metadata(struct inode *, struct inode *, unsigned int);
+int room_for_filename(const void *, int, int);
+void f2fs_drop_nlink(struct inode *, struct inode *, struct page *);
+struct f2fs_dir_entry *f2fs_find_entry(struct inode *, struct qstr *,
+							struct page **);
+struct f2fs_dir_entry *f2fs_parent_dir(struct inode *, struct page **);
+ino_t f2fs_inode_by_name(struct inode *, struct qstr *);
+void f2fs_set_link(struct inode *, struct f2fs_dir_entry *,
+				struct page *, struct inode *);
+int update_dent_inode(struct inode *, struct inode *, const struct qstr *);
+void f2fs_update_dentry(nid_t ino, umode_t mode, struct f2fs_dentry_ptr *,
+			const struct qstr *, f2fs_hash_t , unsigned int);
+int f2fs_add_regular_entry(struct inode *, const struct qstr *,
+						struct inode *, nid_t, umode_t);
+int __f2fs_add_link(struct inode *, const struct qstr *, struct inode *, nid_t,
+			umode_t);
+void f2fs_delete_entry(struct f2fs_dir_entry *, struct page *, struct inode *,
+							struct inode *);
+int f2fs_do_tmpfile(struct inode *, struct inode *);
+bool f2fs_empty_dir(struct inode *);
+>>>>>>> v4.4.180
 
 static inline int f2fs_add_link(struct dentry *dentry, struct inode *inode)
 {
@@ -2849,8 +2929,13 @@ void f2fs_quota_off_umount(struct super_block *sb);
 int f2fs_commit_super(struct f2fs_sb_info *sbi, bool recover);
 int f2fs_sync_fs(struct super_block *sb, int sync);
 extern __printf(3, 4)
+<<<<<<< HEAD
 void f2fs_msg(struct super_block *sb, const char *level, const char *fmt, ...);
 int f2fs_sanity_check_ckpt(struct f2fs_sb_info *sbi);
+=======
+void f2fs_msg(struct super_block *, const char *, const char *, ...);
+int sanity_check_ckpt(struct f2fs_sb_info *sbi);
+>>>>>>> v4.4.180
 
 /*
  * hash.c
@@ -2907,6 +2992,7 @@ void f2fs_destroy_node_manager_caches(void);
 /*
  * segment.c
  */
+<<<<<<< HEAD
 bool f2fs_need_SSR(struct f2fs_sb_info *sbi);
 void f2fs_register_inmem_page(struct inode *inode, struct page *page);
 void f2fs_drop_inmem_pages_all(struct f2fs_sb_info *sbi, bool gc_failure);
@@ -2967,10 +3053,49 @@ void f2fs_destroy_segment_manager_caches(void);
 int f2fs_rw_hint_to_seg_type(enum rw_hint hint);
 enum rw_hint f2fs_io_type_to_rw_hint(struct f2fs_sb_info *sbi,
 			enum page_type type, enum temp_type temp);
+=======
+void register_inmem_page(struct inode *, struct page *);
+int commit_inmem_pages(struct inode *, bool);
+void f2fs_balance_fs(struct f2fs_sb_info *);
+void f2fs_balance_fs_bg(struct f2fs_sb_info *);
+int f2fs_issue_flush(struct f2fs_sb_info *);
+int create_flush_cmd_control(struct f2fs_sb_info *);
+void destroy_flush_cmd_control(struct f2fs_sb_info *);
+void invalidate_blocks(struct f2fs_sb_info *, block_t);
+bool is_checkpointed_data(struct f2fs_sb_info *, block_t);
+void refresh_sit_entry(struct f2fs_sb_info *, block_t, block_t);
+void clear_prefree_segments(struct f2fs_sb_info *, struct cp_control *);
+void release_discard_addrs(struct f2fs_sb_info *);
+int npages_for_summary_flush(struct f2fs_sb_info *, bool);
+void allocate_new_segments(struct f2fs_sb_info *);
+int f2fs_trim_fs(struct f2fs_sb_info *, struct fstrim_range *);
+struct page *get_sum_page(struct f2fs_sb_info *, unsigned int);
+void update_meta_page(struct f2fs_sb_info *, void *, block_t);
+void write_meta_page(struct f2fs_sb_info *, struct page *);
+void write_node_page(unsigned int, struct f2fs_io_info *);
+void write_data_page(struct dnode_of_data *, struct f2fs_io_info *);
+void rewrite_data_page(struct f2fs_io_info *);
+void f2fs_replace_block(struct f2fs_sb_info *, struct dnode_of_data *,
+				block_t, block_t, unsigned char, bool);
+void allocate_data_block(struct f2fs_sb_info *, struct page *,
+		block_t, block_t *, struct f2fs_summary *, int);
+void f2fs_wait_on_page_writeback(struct page *, enum page_type);
+void f2fs_wait_on_encrypted_page_writeback(struct f2fs_sb_info *, block_t);
+void write_data_summaries(struct f2fs_sb_info *, block_t);
+void write_node_summaries(struct f2fs_sb_info *, block_t);
+int lookup_journal_in_cursum(struct f2fs_summary_block *,
+					int, unsigned int, int);
+void flush_sit_entries(struct f2fs_sb_info *, struct cp_control *);
+int build_segment_manager(struct f2fs_sb_info *);
+void destroy_segment_manager(struct f2fs_sb_info *);
+int __init create_segment_manager_caches(void);
+void destroy_segment_manager_caches(void);
+>>>>>>> v4.4.180
 
 /*
  * checkpoint.c
  */
+<<<<<<< HEAD
 void f2fs_stop_checkpoint(struct f2fs_sb_info *sbi, bool end_io);
 struct page *f2fs_grab_meta_page(struct f2fs_sb_info *sbi, pgoff_t index);
 struct page *f2fs_get_meta_page(struct f2fs_sb_info *sbi, pgoff_t index);
@@ -3004,6 +3129,33 @@ int f2fs_write_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc);
 void f2fs_init_ino_entry_info(struct f2fs_sb_info *sbi);
 int __init f2fs_create_checkpoint_caches(void);
 void f2fs_destroy_checkpoint_caches(void);
+=======
+struct page *grab_meta_page(struct f2fs_sb_info *, pgoff_t);
+struct page *get_meta_page(struct f2fs_sb_info *, pgoff_t);
+struct page *get_tmp_page(struct f2fs_sb_info *, pgoff_t);
+bool f2fs_is_valid_blkaddr(struct f2fs_sb_info *sbi,
+					block_t blkaddr, int type);
+int ra_meta_pages(struct f2fs_sb_info *, block_t, int, int, bool);
+void ra_meta_pages_cond(struct f2fs_sb_info *, pgoff_t);
+long sync_meta_pages(struct f2fs_sb_info *, enum page_type, long);
+void add_dirty_inode(struct f2fs_sb_info *, nid_t, int type);
+void remove_dirty_inode(struct f2fs_sb_info *, nid_t, int type);
+void release_dirty_inode(struct f2fs_sb_info *);
+bool exist_written_data(struct f2fs_sb_info *, nid_t, int);
+int acquire_orphan_inode(struct f2fs_sb_info *);
+void release_orphan_inode(struct f2fs_sb_info *);
+void add_orphan_inode(struct f2fs_sb_info *, nid_t);
+void remove_orphan_inode(struct f2fs_sb_info *, nid_t);
+int recover_orphan_inodes(struct f2fs_sb_info *);
+int get_valid_checkpoint(struct f2fs_sb_info *);
+void update_dirty_page(struct inode *, struct page *);
+void remove_dirty_dir_inode(struct inode *);
+void sync_dirty_dir_inodes(struct f2fs_sb_info *);
+void write_checkpoint(struct f2fs_sb_info *, struct cp_control *);
+void init_ino_entry_info(struct f2fs_sb_info *);
+int __init create_checkpoint_caches(void);
+void destroy_checkpoint_caches(void);
+>>>>>>> v4.4.180
 
 /*
  * data.c
@@ -3064,8 +3216,13 @@ void f2fs_build_gc_manager(struct f2fs_sb_info *sbi);
 /*
  * recovery.c
  */
+<<<<<<< HEAD
 int f2fs_recover_fsync_data(struct f2fs_sb_info *sbi, bool check_only);
 bool f2fs_space_for_roll_forward(struct f2fs_sb_info *sbi);
+=======
+int recover_fsync_data(struct f2fs_sb_info *, bool);
+bool space_for_roll_forward(struct f2fs_sb_info *);
+>>>>>>> v4.4.180
 
 /*
  * debug.c

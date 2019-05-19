@@ -1778,7 +1778,10 @@ void unregister_gadget_item(struct config_item *item)
 {
 	struct gadget_info *gi = to_gadget_info(item);
 
+<<<<<<< HEAD
 	/* to protect race with gadget_dev_desc_UDC_store*/
+=======
+>>>>>>> v4.4.180
 	mutex_lock(&gi->lock);
 	unregister_gadget(gi);
 	mutex_unlock(&gi->lock);

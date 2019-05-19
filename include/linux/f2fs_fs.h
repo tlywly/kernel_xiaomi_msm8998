@@ -118,10 +118,13 @@ struct f2fs_super_block {
 /*
  * For checkpoint
  */
+<<<<<<< HEAD
 #define CP_LARGE_NAT_BITMAP_FLAG	0x00000400
 #define CP_NOCRC_RECOVERY_FLAG	0x00000200
 #define CP_TRIMMED_FLAG		0x00000100
 #define CP_NAT_BITS_FLAG	0x00000080
+=======
+>>>>>>> v4.4.180
 #define CP_CRC_RECOVERY_FLAG	0x00000040
 #define CP_FASTBOOT_FLAG	0x00000020
 #define CP_FSCK_FLAG		0x00000010
@@ -544,6 +547,9 @@ enum {
 
 #define S_SHIFT 12
 
+<<<<<<< HEAD
 #define	F2FS_DEF_PROJID		0	/* default project ID */
 
+=======
+>>>>>>> v4.4.180
 #endif  /* _LINUX_F2FS_FS_H */

@@ -680,11 +680,18 @@ int f2fs_create_flush_cmd_control(struct f2fs_sb_info *sbi)
 	atomic_set(&fcc->issing_flush, 0);
 	init_waitqueue_head(&fcc->flush_wait_queue);
 	init_llist_head(&fcc->issue_list);
+<<<<<<< HEAD
 	SM_I(sbi)->fcc_info = fcc;
 	if (!test_opt(sbi, FLUSH_MERGE))
 		return err;
 
 init_thread:
+=======
+	SM_I(sbi)->cmd_control_info = fcc;
+	if (!test_opt(sbi, FLUSH_MERGE))
+		return err;
+
+>>>>>>> v4.4.180
 	fcc->f2fs_issue_flush = kthread_run(issue_flush_thread, sbi,
 				"f2fs_flush-%u:%u", MAJOR(dev), MINOR(dev));
 	if (IS_ERR(fcc->f2fs_issue_flush)) {
@@ -981,6 +988,7 @@ static int __blkdev_issue_discard(struct block_device *bdev, sector_t sector,
 	return 0;
 }
 
+<<<<<<< HEAD
 static void __check_sit_bitmap(struct f2fs_sb_info *sbi,
 				block_t start, block_t end)
 {
@@ -1158,6 +1166,11 @@ static void __punch_discard_cmd(struct f2fs_sb_info *sbi,
 static void __update_discard_tree_range(struct f2fs_sb_info *sbi,
 				struct block_device *bdev, block_t lstart,
 				block_t start, block_t len)
+=======
+static void __add_discard_entry(struct f2fs_sb_info *sbi,
+		struct cp_control *cpc, struct seg_entry *se,
+		unsigned int start, unsigned int end)
+>>>>>>> v4.4.180
 {
 	struct discard_cmd_control *dcc = SM_I(sbi)->dcc_info;
 	struct discard_cmd *prev_dc = NULL, *next_dc = NULL;
@@ -1999,7 +2012,11 @@ bool f2fs_is_checkpointed_data(struct f2fs_sb_info *sbi, block_t blkaddr)
 	struct seg_entry *se;
 	bool is_cp = false;
 
+<<<<<<< HEAD
 	if (!is_valid_blkaddr(blkaddr))
+=======
+	if (!is_valid_data_blkaddr(sbi, blkaddr))
+>>>>>>> v4.4.180
 		return true;
 
 	down_read(&sit_i->sentry_lock);
@@ -3073,7 +3090,11 @@ void f2fs_wait_on_block_writeback(struct f2fs_sb_info *sbi, block_t blkaddr)
 {
 	struct page *cpage;
 
+<<<<<<< HEAD
 	if (!is_valid_blkaddr(blkaddr))
+=======
+	if (!is_valid_data_blkaddr(sbi, blkaddr))
+>>>>>>> v4.4.180
 		return;
 
 	cpage = find_lock_page(META_MAPPING(sbi), blkaddr);
@@ -3753,8 +3774,13 @@ static int build_sit_entries(struct f2fs_sb_info *sbi)
 	int sit_blk_cnt = SIT_BLK_CNT(sbi);
 	unsigned int i, start, end;
 	unsigned int readed, start_blk = 0;
+<<<<<<< HEAD
 	int err = 0;
 	block_t total_node_blocks = 0;
+=======
+	int nrpages = MAX_BIO_BLOCKS(sbi);
+	int err = 0;
+>>>>>>> v4.4.180
 
 	do {
 		readed = f2fs_ra_meta_pages(sbi, start_blk, BIO_MAX_PAGES,
@@ -3767,7 +3793,10 @@ static int build_sit_entries(struct f2fs_sb_info *sbi)
 			struct f2fs_sit_block *sit_blk;
 			struct page *page;
 
+<<<<<<< HEAD
 			se = &sit_i->sentries[start];
+=======
+>>>>>>> v4.4.180
 			page = get_current_sit_page(sbi, start);
 			sit_blk = (struct f2fs_sit_block *)page_address(page);
 			sit = sit_blk->entries[SIT_ENTRY_OFFSET(sit_i, start)];
@@ -3781,6 +3810,7 @@ static int build_sit_entries(struct f2fs_sb_info *sbi)
 				total_node_blocks += se->valid_blocks;
 
 			/* build discard map only one time */
+<<<<<<< HEAD
 			if (f2fs_discard_en(sbi)) {
 				if (is_set_ckpt_flags(sbi, CP_TRIMMED_FLAG)) {
 					memset(se->discard_map, 0xff,
@@ -3794,6 +3824,10 @@ static int build_sit_entries(struct f2fs_sb_info *sbi)
 						se->valid_blocks;
 				}
 			}
+=======
+			memcpy(se->discard_map, se->cur_valid_map, SIT_VBLOCK_MAP_SIZE);
+			sbi->discard_blks += sbi->blocks_per_seg - se->valid_blocks;
+>>>>>>> v4.4.180
 
 			if (sbi->segs_per_sec > 1)
 				get_sec_entry(sbi, start)->valid_blocks +=
@@ -3802,11 +3836,21 @@ static int build_sit_entries(struct f2fs_sb_info *sbi)
 		start_blk += readed;
 	} while (start_blk < sit_blk_cnt);
 
+<<<<<<< HEAD
 	down_read(&curseg->journal_rwsem);
 	for (i = 0; i < sits_in_cursum(journal); i++) {
 		unsigned int old_valid_blocks;
 
 		start = le32_to_cpu(segno_in_journal(journal, i));
+=======
+	mutex_lock(&curseg->curseg_mutex);
+	for (i = 0; i < sits_in_cursum(sum); i++) {
+		struct f2fs_sit_entry sit;
+		struct seg_entry *se;
+		unsigned int old_valid_blocks;
+
+		start = le32_to_cpu(segno_in_journal(sum, i));
+>>>>>>> v4.4.180
 		if (start >= MAIN_SEGS(sbi)) {
 			f2fs_msg(sbi->sb, KERN_ERR,
 					"Wrong journal entry on segno %u",
@@ -3817,16 +3861,23 @@ static int build_sit_entries(struct f2fs_sb_info *sbi)
 		}
 
 		se = &sit_i->sentries[start];
+<<<<<<< HEAD
 		sit = sit_in_journal(journal, i);
 
 		old_valid_blocks = se->valid_blocks;
 		if (IS_NODESEG(se->type))
 			total_node_blocks -= old_valid_blocks;
+=======
+		sit = sit_in_journal(sum, i);
+
+		old_valid_blocks = se->valid_blocks;
+>>>>>>> v4.4.180
 
 		err = check_block_count(sbi, start, &sit);
 		if (err)
 			break;
 		seg_info_from_raw_sit(se, &sit);
+<<<<<<< HEAD
 		if (IS_NODESEG(se->type))
 			total_node_blocks += se->valid_blocks;
 
@@ -3859,6 +3910,17 @@ static int build_sit_entries(struct f2fs_sb_info *sbi)
 		err = -EINVAL;
 	}
 
+=======
+
+		memcpy(se->discard_map, se->cur_valid_map, SIT_VBLOCK_MAP_SIZE);
+		sbi->discard_blks += old_valid_blocks - se->valid_blocks;
+
+		if (sbi->segs_per_sec > 1)
+			get_sec_entry(sbi, start)->valid_blocks +=
+				se->valid_blocks - old_valid_blocks;
+	}
+	mutex_unlock(&curseg->curseg_mutex);
+>>>>>>> v4.4.180
 	return err;
 }
 
@@ -4009,10 +4071,15 @@ int f2fs_build_segment_manager(struct f2fs_sb_info *sbi)
 
 	INIT_LIST_HEAD(&sm_info->sit_entry_set);
 
+<<<<<<< HEAD
 	init_rwsem(&sm_info->curseg_lock);
 
 	if (!f2fs_readonly(sbi->sb)) {
 		err = f2fs_create_flush_cmd_control(sbi);
+=======
+	if (!f2fs_readonly(sbi->sb)) {
+		err = create_flush_cmd_control(sbi);
+>>>>>>> v4.4.180
 		if (err)
 			return err;
 	}
